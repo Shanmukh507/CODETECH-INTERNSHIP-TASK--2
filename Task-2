@@ -1,0 +1,44 @@
+import socket
+import requests
+from urllib.parse import urlparse
+
+def scan_ports(ip_address, port_range):
+    open_ports = []
+    for port in range(port_range[0], port_range[1] + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(1)
+            result = sock.connect_ex((ip_address, port))
+            if result == 0:
+                open_ports.append(port)
+    return open_ports
+
+def get_server_version(url):
+    try:
+        response = requests.get(url)
+        return response.headers.get('Server', 'No server version info found')
+    except requests.RequestException as error:
+        return f"Error fetching server version: {error}"
+
+def main(target, port_range):
+    parsed_url = urlparse(target)
+    ip_address = parsed_url.hostname or target
+
+    print(f"Initiating scan for {target}...")
+
+    open_ports = scan_ports(ip_address, port_range)
+    if open_ports:
+        print(f"Open ports detected: {open_ports}")
+    else:
+        print("No open ports detected.")
+
+    if parsed_url.scheme:
+        server_version = get_server_version(target)
+        print(f"Server version: {server_version}")
+    else:
+        print("Invalid URL scheme provided.")
+
+if __name__ == "__main__":
+    target_input = input("Please enter the IP address or URL to scan: ")
+    port_range_input = input("Please enter the port range to scan (e.g., 20-80): ")
+    port_range = tuple(map(int, port_range_input.split('-')))
+    main(target_input, port_range)
